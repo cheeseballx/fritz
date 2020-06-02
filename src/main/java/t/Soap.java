@@ -17,7 +17,14 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
 
-public class MySoap {
+public class Soap {
+
+    public static Response call(String url, String serviceUrl, String action){
+        
+        
+        
+        return new Response(200,"lol");
+    }
 
     public static void main(String args[]){
 

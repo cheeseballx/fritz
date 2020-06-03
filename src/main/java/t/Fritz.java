@@ -1,5 +1,6 @@
 package t;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.sound.midi.Track;
@@ -16,7 +17,8 @@ Class Fritz for interfacing and controlling a frizbox
 */
 
     //System
-    Logger logging;
+    private static Logger logging;
+    public static Level LOGLEVEL = Level.ALL;
 
     private String username;  //username
     private String password;  //password
@@ -32,6 +34,9 @@ Class Fritz for interfacing and controlling a frizbox
 
         //logging purposes
         logging = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
+        
+        //FOR
+        logging.setLevel(LOGLEVEL);
 
         //set the defaults
         this.username = "admin";
@@ -57,7 +62,7 @@ Class Fritz for interfacing and controlling a frizbox
         return builder.toString();
     }
 
-    public boolean makeAction(String path, String serviceUrl ,String action){
+    public Answer makeAction(String path, String serviceUrl ,String action){
         
         String url = getAddress() + "/" + path;
 
@@ -65,12 +70,20 @@ Class Fritz for interfacing and controlling a frizbox
         logging.info("service: " + serviceUrl);
         logging.info("action:"  + action);
 
+        //doing the call
         Response response =  Soap.call(url, serviceUrl, action);
+        
+        //serving the response
+        if (response.getCode() == 200){
+            Answer ans = new Answer(response.getContent());
+            ans.getTagValues();
+            return ans;
+        }
 
-        if (response.getCode() == 200)
-            return true;
+        logging.warning("got no correct answer: "+ response.getCode());
+        logging.info(response.getContent());
 
-        return false;
+        return null;
     }
     
     

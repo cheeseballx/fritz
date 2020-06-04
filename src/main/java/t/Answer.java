@@ -1,23 +1,9 @@
 package t;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
 
 public class Answer {
 
@@ -27,38 +13,27 @@ public class Answer {
 
         this.map = new HashMap<>();
 
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder builder = null;
-        try {
-            builder = factory.newDocumentBuilder();
-        } catch (ParserConfigurationException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        String xmlparts[] = result.split("(?=<)|(?<=>)");
+        ArrayList<String> cleand = new ArrayList<>();
+        for(String s : xmlparts){
+            if ( ! (s.trim().length()<=0) )
+                cleand.add(s);
         }
 
-        Document doc = null;
-        try {
-            doc = builder.parse(new InputSource(new StringReader(result)));
-        } catch (SAXException | IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        Element root = doc.getDocumentElement();
+        //System.out.println(Arrays.toString(cleand.toArray()));
+        for (int i=1; i<cleand.size(); i++){
+            if (cleand.get(i-1).contains("New") && !(cleand.get(i).contains("<")) && (!cleand.get(i).contains(">"))){
 
-        NodeList childs = root.getChildNodes();
-
-        for (int i=0; i<childs.getLength(); i++){
-            Node child = childs.item(i);
-            
-            String tag = child.getNodeName();
-            String content = child.getNodeValue();
-
-            this.map.put(tag, content);
+                String key = cleand.get(i-1);
+                key = key.replace("<", "").replace(">", "");
+                map.put(key,cleand.get(i));
+            }
         }
     }
 
     public Map<String,String> getTagValues(){
-        
+
+        System.out.println("=================================");
         for (Iterator<String> it = map.keySet().iterator(); it.hasNext();){
             String key = it.next();
             System.out.println(key + " --- " + map.get(key));

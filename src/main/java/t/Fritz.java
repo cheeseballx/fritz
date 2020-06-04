@@ -1,50 +1,52 @@
 package t;
 
+import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.http.auth.UsernamePasswordCredentials;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 
 public class Fritz {
 
-/*
-Class Fritz for interfacing and controlling a frizbox
-=====================================================
-* Andreas Gladisch
-* 02.06.2020
-* public should be usabable for cli and as import
-*
-*
-* Functions are available by creating on Fritz object
-* then set it up by set functions 
-* and in the end fire actions by the make action
-*/
+    /*
+     * Class Fritz for interfacing and controlling a frizbox
+     * ===================================================== 
+     * Andreas Gladisch
+     * 02.06.2020 public should be usabable for cli and as import
+     *
+     *
+     * Functions are available by creating on Fritz object then set it up by set
+     * functions and in the end fire actions by the make action
+     */
 
-    //System
+    // System
     private static Logger logging;
     public static Level LOGLEVEL = Level.ALL;
 
-    private String username;  //username
-    private String password;  //password
-    
-    private String host;            //host is the address without the http(s) and ends befor the post
-    private String host2;           //if the host is not reachable we will define a secon host
-    private boolean secondHost;     //check for to use second host
-    
-    private int port;       //the port that is used
-    private boolean tls;    //tls for http and tls for https
+    private String username; // username
+    private String password; // password
 
-    public Fritz(){
+    private String host; // host is the address without the http(s) and ends befor the post
+    private String host2; // if the host is not reachable we will define a secon host
+    private boolean secondHost; // check for to use second host
 
-        //logging purposes
+    private int port; // the port that is used
+    private boolean tls; // tls for http and tls for https
+
+    public Fritz() {
+
+        // logging purposes
         logging = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
-        logging.setLevel(LOGLEVEL);
-        logging.info("begin logging here");
-        logging.info("create Fritz object, filled with std values");
+        logging.info("START NEW INTERFACE -> create Fritz object, filled with std values");
 
-        //set the defaults
+        // set the defaults
         this.username = "admin";
-        this.password = "admin";
+        this.password = null;
 
         this.host = "192.168.178.1";
         this.host2 = "fritz.box";
@@ -54,54 +56,83 @@ Class Fritz for interfacing and controlling a frizbox
         this.tls = true;
     }
 
-    public String getAddress(){
-        StringBuilder builder = new StringBuilder();
+    // ==================== D O - R E Q U E S T ================
 
-        builder.append( tls ? "https" : "http");        // https
-        builder.append( "://" );                        // https://
-        builder.append( !secondHost ? host : host2); // https://xxx.xxx.xxx.xxx
-        builder.append( ":" );                          // https://xxx.xxx.xxx.xxx:
-        builder.append( port );                         // https://xxx.xxx.xxx.xxx:49000
-        
-        return builder.toString();
-    }
+    public Answer makeAction(String path, String serviceUrl, String action) {
 
-    public Answer makeAction(String path, String serviceUrl ,String action){
-        
-        //load the address
-        String url = getAddress() + "/" + path;
+        // load the address
+        String url = getAddress();
+        if (path.startsWith("/"))
+            url += path;
+        else
+            url += "/" + path;
 
-        //log everythink
-        logging.info("makeAction to:" + url);
-        logging.info("service: " + serviceUrl);
-        logging.info("action:"  + action);
-        logging.info("tls:"+ (this.tls ? "encrypted" : "open") );
+        // log everythink
+        logging.config("makeAction to:" + url);
+        logging.config("service: " + serviceUrl);
+        logging.config("action:" + action);
+        logging.config("tls:" + (this.tls ? "encrypted" : "open"));
 
-        UsernamePasswordCredentials creds = null; 
+        UsernamePasswordCredentials creds = null;
 
-        //if one parameter is missing send no credentials
-        if (this.username == null || this.password == null || 
-            this.username.length()<=0 || this.password.length()<=0)
-            logging.info("sending NO Creds. sth seems to be null");
-        else{
-            creds = new UsernamePasswordCredentials(this.username,this.password);
+        // if one parameter is missing send no credentials
+        if (this.username == null || this.password == null || this.username.length() <= 0 || this.password.length() <= 0)
+            logging.config("sending NO Creds. sth seems to be null");
+        else {
+            creds = new UsernamePasswordCredentials(this.username, this.password);
+            logging.config("sending Creds with ");
         }
 
-        //doing the call
-        Response response =  Soap.call(url, serviceUrl, action,creds,this.tls);
+        // doing the call
+        logging.info("start reuest");
+        Response response = Soap.call(url, serviceUrl, action, null, creds, this.tls);
         logging.info("request done");
-        
-        //serving the response
-        if (response.getCode() == 200){
+
+        // serving the response
+        if (response.getCode() == 200) {
             Answer ans = new Answer(response.getContent());
             ans.getTagValues();
             return ans;
         }
 
-        logging.warning("got no correct answer: "+ response.getCode());
+        logging.warning("got no correct answer: " + response.getCode());
         logging.info(response.getContent());
 
         return null;
+    }
+
+    // ==================== G E T T E R S ==================
+
+    public String getAddress() {
+        StringBuilder builder = new StringBuilder();
+
+        builder.append(tls ? "https" : "http"); // https
+        builder.append("://"); // https://
+        builder.append(!secondHost ? host : host2); // https://xxx.xxx.xxx.xxx
+        builder.append(":"); // https://xxx.xxx.xxx.xxx:
+        builder.append(port); // https://xxx.xxx.xxx.xxx:49000
+
+        return builder.toString();
+    }
+
+    public void showActions(String url) {
+
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder db;
+        try {
+            db = dbf.newDocumentBuilder();
+            Document doc = db.parse(new URL(url).openStream());
+            NodeList nl = doc.getElementsByTagName("service");
+            
+            for (int i=0; i<nl.getLength(); i++){
+                System.out.println(nl.item(i));
+                System.out.println(nl.item(i).getTextContent());
+            }
+
+        } catch (Exception e) {
+            System.out.println("test123");
+            e.printStackTrace();
+        }
     }
     
 

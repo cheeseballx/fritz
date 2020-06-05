@@ -1,6 +1,7 @@
 package t;
 
 import java.net.URL;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -9,6 +10,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 public class Fritz {
@@ -58,7 +60,7 @@ public class Fritz {
 
     // ==================== D O - R E Q U E S T ================
 
-    public Answer makeAction(String path, String serviceUrl, String action) {
+    public Answer makeAction(String path, String serviceUrl, String action, Map<String,String> param) {
 
         // load the address
         String url = getAddress();
@@ -85,20 +87,16 @@ public class Fritz {
 
         // doing the call
         logging.info("start reuest");
-        Response response = Soap.call(url, serviceUrl, action, null, creds, this.tls);
+        Response response = Soap.call(url, serviceUrl, action, param, creds, this.tls);
         logging.info("request done");
 
         // serving the response
-        if (response.getCode() == 200) {
-            Answer ans = new Answer(response.getContent());
-            ans.getTagValues();
-            return ans;
+        if (response.getCode() != 200) {
+            logging.warning("got no correct answer: " + response.getCode());
         }
 
-        logging.warning("got no correct answer: " + response.getCode());
-        logging.info(response.getContent());
-
-        return null;
+        Answer ans = new Answer(response.getContent(),response.getCode());
+        return ans;
     }
 
     // ==================== G E T T E R S ==================
@@ -115,18 +113,34 @@ public class Fritz {
         return builder.toString();
     }
 
-    public void showActions(String url) {
+    public void showActions(String url,String what) {
 
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder db;
         try {
             db = dbf.newDocumentBuilder();
             Document doc = db.parse(new URL(url).openStream());
-            NodeList nl = doc.getElementsByTagName("service");
+            NodeList nl = doc.getElementsByTagName(what);
+            NodeList inner  = null;
+            //go threw all service - addresses
             
             for (int i=0; i<nl.getLength(); i++){
-                System.out.println(nl.item(i));
-                System.out.println(nl.item(i).getTextContent());
+                System.out.println("Service");
+                inner = nl.item(i).getChildNodes();
+
+                for(int t=0; t<inner.getLength(); t++){
+                    Node node = inner.item(t);
+                    if (node.getNodeType() != Node.ELEMENT_NODE)
+                        continue;
+
+                    if(what.equals("action") && !node.getNodeName().equals("name") )
+                        continue;
+                    
+                    System.out.println("--> "+node.getNodeName() + " = " +node.getTextContent() );
+                    if (node.getNodeName().equals("SCPDURL"))
+                        showActions("http://192.168.178.1:49000" + node.getTextContent(),"action");
+
+                }
             }
 
         } catch (Exception e) {

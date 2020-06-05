@@ -22,22 +22,32 @@ import java.io.UnsupportedEncodingException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 
 public class Soap {
 
     public static Response call(String url, String serviceUrl, String action, Map<String,String> param, UsernamePasswordCredentials credentials,boolean tls) {
+ 
+        String body = "<u:" + action + ">\n";
+        if (param!=null && param.size()>0){
+            for (Iterator<Entry<String,String>> iter = param.entrySet().iterator(); iter.hasNext();){
+                Entry<String,String> p = iter.next();
+                body += String.format("<%s>%s</%s>\n",p.getKey(),p.getValue(),p.getKey());
+            }
+        }
+        body +="</u:" + action + ">\n";   
 
         String content = String.format(
                 "    <soapenv:Envelope soapenv:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\""
                 +"          xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\""
                 +"          xmlns:u=\"%s\" >"
                 + "\n  <soapenv:Body>" 
-                + "\n    <u:%s />" 
+                + "\n      %s " 
                 + "\n  </soapenv:Body>" 
-                + "\n</soapenv:Envelope>", serviceUrl, action);
+                + "\n</soapenv:Envelope>", serviceUrl, body);
 
         // Create the POST object and add the Header
         HttpPost httpPost = new HttpPost(url);

@@ -1,4 +1,4 @@
-package t;
+package fritzchen;
 
 import java.util.ArrayList;
 import java.util.HashMap;

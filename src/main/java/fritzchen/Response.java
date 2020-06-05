@@ -1,4 +1,4 @@
-package t;
+package fritzchen;
 
 public class Response {
 

@@ -1,4 +1,4 @@
-package t;
+package fritzchen;
 
 import java.net.URL;
 import java.util.Map;

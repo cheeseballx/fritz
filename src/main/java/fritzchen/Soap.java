@@ -1,4 +1,4 @@
-package t;
+package fritzchen;
 
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
